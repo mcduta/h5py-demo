@@ -18,17 +18,17 @@
 
 ## Container
 
-### DIY
-The Singularity container for `miniconda`, `mpi4py` and `h5py` can be generated with
+### Obtain
+The Singularity container for `miniconda`, `mpi4py` and `h5py` can be directly downloaded from [SyLabs](https://cloud.sylabs.io/library/mcduta/default/h5py) using the command
+```
+singularity pull library://mcduta/default/h5py
+```
+
+Alternatively, it can be  generated with
 ```bash
 singularity build --fakeroot h5py_latest.sif Singularity.centos-7__openmpi-4.0.5__h5py
 ```
 
-### Download
-The Singularity container can be directly downloaded from [SyLabs](https://cloud.sylabs.io/library/mcduta/default/h5py) using the command
-```
-singularity pull library://mcduta/default/h5py
-```
 
 ### Interactive Shell
 To experiment with the python scripts, obtain an interactive shell in the container
@@ -73,9 +73,12 @@ An interactive session on the Hamilton cluster is a good idea for a) the availab
 ```
 qrsh -pe openmpi-savu 20 -l h_rt=01:00:00,m_mem_free=8G -P tomography
 ```
+Singularity is available on the cluster nodes.
 
 
 ## `h5py` Experiments
+
+### Exercise 1
 First, experiment with parallel writes and reads from local disk (`ext4` file system). Create a user writable directory in `/tmp` and then obtain an interactive session on Hamilton. Use the commands
 
 ```
@@ -97,6 +100,7 @@ Edit the file `h5py_write_demo.py` and observe the following:
 
 The data size is fixed, so increasing the number of processes means each process initialises less data.
 
+### Exercise 2
 Now, run the "reader" demo, which reads the data from the file written by the "writer" demo. Use the command
 
 ```
@@ -105,109 +109,28 @@ for np in 4 8 16; do mpirun -np ${np} python /apps/input/h5py_read_demo.py; done
 
 Edit the file `h5py_read_demo.py` and observe the similarities with the "write" demo.
 
----
-*Exercise*:
-In the "read" demo, print additional information on data read by each process, _e.g._
+
+### Exercise 3
+In the read demo `h5py_read_demo.py`, print additional information on data read by each process, _e.g._
 ```
 print (" iproc = {}, shape = {}, data[0,0] = {}".format(iproc, dataproc.shape, dataproc[0,0]))
 ```
 Place this just after the last `MPI.Wtime` call. Rerun the demo with 4 processes and observe the output. Now replace the "process view" of the data `dataproc[0,0]` with the "global view" `dataset[0,0]` and rerun. What happens?
 ```
 
----
+### Exercise 4
+Now repeat the write and read runs above on `gpfs` rather than `etx4`. Use an interactive cluster session and an appropriate path (_e.g._ `/dls/p45`) that is mounted as `gpfs` on Hamilton nodes. How do write/read times compare with `ext4`?
 
+### Exercise 5
+Repeat the same operations, on the same path but this time on your workstations, which mounts the path as `nfs` (check!). How do results change?
 
+### Exercise 6
+Edit the file `h5py_serial_chunking_demo.py` and understand what it is programmed to do. The demo is serial and can be run outside the container, using the DLS python installation, _e.g._ using `module load python/3.9`.
 
-> **Exercise**: Repeat the write and read runs above on `gpfs` rather
-> than `etx4`. Use an interactive cluster session and an appropriate
-> path (_e.g._ `/dls/p45`) that is mounted as `gpfs` on Hamilton
-> nodes. How do write/read times compare with `ext4`. Repeat the same
-> operations, on the same path but this time on your workstations,
-> which mounts the path as `nfs` (check!).
+Notice how the demo writes and then reads the same amount of data (simulating a stack of images) to and from HDF5 files. The first write/read is contiguous (_i.e._ no chunks), the second is chunked and the third is chunked and also uses compression.
 
+Run the demo on `gpfs03` as well as `ext4`. The chunked reads should show increased performance over the contiguous, and compressed read even more so.
 
-
-
-
-
-
-Singularity> for np in 4 8 16; do mpirun -np ${np} python /apps/input/h5py_read_demo.py; done
- Dataset size: 4882.8125 MB
- Collective read time: 0.42280503 seconds
- Dataset size: 4882.8125 MB
- Collective read time: 0.244647239 seconds
- Dataset size: 4882.8125 MB
- Collective read time: 0.15891313500000004 seconds
-Singularity> for np in 4 8 16; do mpirun -np ${np} python /apps/input/h5py_write_demo.py; done
- Dataset size: 4882.8125 MB
- Collective write time: 20.165045275 seconds
- Dataset size: 4882.8125 MB
- Collective write time: 18.179607823 seconds
- Dataset size: 4882.8125 MB
- Collective write time: 16.264138609 seconds
-
-
-
-
-
-gpfs
-
-Singularity> for np in 4 8 16; do mpirun -np ${np} python h5py_write_demo.py; done
- Dataset size: 4882.8125 MB
- Collective write time: 4.477490683 seconds
- Dataset size: 4882.8125 MB
- Collective write time: 2.5929337930000003 seconds
- Dataset size: 4882.8125 MB
- Collective write time: 1.784692006 seconds
-
-
-Singularity> for np in 4 8 16; do mpirun -np ${np} python h5py_read_demo.py; done
- Dataset size: 4882.8125 MB
- Collective read time: 0.646904899 seconds
- Dataset size: 4882.8125 MB
- Collective read time: 0.411342949 seconds
- Dataset size: 4882.8125 MB
- Collective read time: 0.39751512 seconds
-
-
-
-
-
-
-chunks
-------
-
-gpfs03
- contiguous dataset read in 0.37422990798950195 secs
- chunked dataset ((1, 200, 200)) read in 0.5271344184875488 secs
-
-/tmp (hamilton)
- contiguous dataset read in 0.23818206787109375 secs
- chunked dataset ((1, 200, 200)) read in 0.13118767738342285 secs
-
-/scratch (ws404)
- contiguous dataset read in 2.823690414428711 secs
- chunked dataset ((1, 200, 200)) read in 1.273721694946289 secs
-
-compression may reduce time (but not on random data)
-and makes files smaller
-
-
-
-
-Chunk size is set at dataset creation time and cannot be changed later. One can use the
-h5repack tool to change storage layout properties. This command will repack and change the
-chunk size of the /All_Data/CrIS-SDR_All/ES_ImaginaryLW dataset from 4x9x30x717 to
-1x1x30x717, making chunk size ~82K instead of the original 3MB size:
-% h5repack -l /All_Data/CrIS-SDR_All/ES_ImaginaryLW:CHUNK=1x1x30x717
-gz6_SCRIS_npp_d20140522_t0754579_e0802557_b13293__noaa_pop.h5 new.h5
-
-When compression is enabled for an HDF5 dataset, the library must always read the entire
-chunk for each call to H5Dread unless the chunk is already in cache. To avoid trashing the
-cache, make sure that chunk cache size is big enough to hold the chunks containing the data
-read or an application reads the whole chunk at once.
-When compression is disabled, the library’s behavior depends on the cache size relative to the
-chunk size. If the chunk fits in the cache, the library reads the entire chunk for each call to
-H5Dread unless it is in the cache. If the chunk doesn’t fit the cache, the library reads only the
-data that is selected. There will be more read operations, especially if the read plane does not
-include the fastest changing dimension.
+**Notes**:
+ - The success of chunking depends entirely on the particular read data access pattern.
+ - The chunks are set at dataset creation time but can be changed using command line tools, _e.g._ `h5repack`.
