@@ -113,6 +113,14 @@ print (" iproc = {}, shape = {}, data[0,0] = {}".format(iproc, dataproc.shape, d
 ```
 Place this just after the last `MPI.Wtime` call. Rerun the demo with 4 processes and observe the output. Now replace the "process view" of the data `dataproc[0,0]` with the "global view" `dataset[0,0]` and rerun. What happens?
 ```
+
+---
+
+
+---
+*Exercise*:
+Repeat the write and read runs above on `gpfs` rather than `etx4`. Use an interactive cluster session and an appropriate path (_e.g._ `/dls/p45`) that is mounted as `gpfs` on Hamilton nodes. How do write/read times compare with `ext4`. Repeat the same operations, on the same path but this time on your workstations, which mounts the path as `nfs` (check!).
+
 ---
 
 
