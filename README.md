@@ -118,7 +118,12 @@ Place this just after the last `MPI.Wtime` call. Rerun the demo with 4 processes
 
 
 
-> *Exercise*: Repeat the write and read runs above on `gpfs` rather than `etx4`. Use an interactive cluster session and an appropriate path (_e.g._ `/dls/p45`) that is mounted as `gpfs` on Hamilton nodes. How do write/read times compare with `ext4`. Repeat the same operations, on the same path but this time on your workstations, which mounts the path as `nfs` (check!).
+> **Exercise**: Repeat the write and read runs above on `gpfs` rather
+> than `etx4`. Use an interactive cluster session and an appropriate
+> path (_e.g._ `/dls/p45`) that is mounted as `gpfs` on Hamilton
+> nodes. How do write/read times compare with `ext4`. Repeat the same
+> operations, on the same path but this time on your workstations,
+> which mounts the path as `nfs` (check!).
 
 
 
