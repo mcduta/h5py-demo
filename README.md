@@ -11,42 +11,43 @@
 
 ## Reading
  - [Python and HDF5](https://twiki.cern.ch/twiki/pub/Sandbox/JaredDavidLittleSandbox/PythonandHDF5.pdf
-) by Andrew Collette (O'Reilly 2014)
- - [Some notes about chinks and compression](https://ntrs.nasa.gov/api/citations/20180008456/downloads/20180008456.pdf)
+) by Andrew Collette (O'Reilly, 2014)
+ - [Some notes about chunks and compression](https://ntrs.nasa.gov/api/citations/20180008456/downloads/20180008456.pdf)
  - [h5py online documentation on parallel HDF5](https://docs.h5py.org/en/stable/mpi.html#)
 
 
-## Container
+## Singularity Container
 
-### Obtain
+### The container
 The Singularity container for `miniconda`, `mpi4py` and `h5py` can be directly downloaded from [SyLabs](https://cloud.sylabs.io/library/mcduta/default/h5py) using the command
 ```
 singularity pull library://mcduta/default/h5py
 ```
 
-Alternatively, it can be  generated with
+Alternatively, it can be  generated from the recipe provided
 ```bash
 singularity build --fakeroot h5py_latest.sif Singularity.centos-7__openmpi-4.0.5__h5py
 ```
 
 
 ### Interactive Shell
-To experiment with the python scripts, obtain an interactive shell in the container
+To experiment with the parallel Python scripts, obtain an interactive shell in the container
 ```
 singularity shell h5py_latest.sif
 ```
+Interact with the shell, available containerised software and the underlying files system in the normal way, just as on any linux workstation.
+
 Basic configuration settings can be checked once in a container shell, _e.g._
 ```
 orte-info --config
 h5pcc -showconfig
+conda list h5py
 ```
-The above commands shows how `h5py` was built. See also [h5py notes on building HDF5](https://docs.h5py.org/en/stable/mpi.html#building-against-parallel-hdf5).
-
-The expected HDF5 tools, _e.g._ `h5dump` and `h5ls` are already in path.
+Both executables as well as the expected HDF5 tools, _e.g._ `h5dump` and `h5ls` are already in path. The above commands shows some details of how `h5py` was built (_i.e._ on top of a parallel enabled build of HDF5 itself). See also [h5py notes on building HDF5](https://docs.h5py.org/en/stable/mpi.html#building-against-parallel-hdf5).
 
 
 ### Input and Output
-Neither the Python scripts nor the HDF5 files generated are part of the container. The Python scripts can be anywhere in a path on DLS storage. For the purpose of experimentation for I/O performance, the HDF5 files generated can be on a path that is mounted as `gpfs`, `nfs` or local `ext4` (_e.g._ local scratch).
+Neither the Python scripts nor the HDF5 files generated are part of the container. The Python scripts can be anywhere in a path on DLS storage. For the purpose of experimentation for I/O performance, the HDF5 files generated can be on a path that is mounted as `gpfs`, `nfs` or local `ext4` (_e.g._ local scratch or `/tmp`).
 
 **Tip**: an easy way to verify what a certain path is mounted as is `df -PT /path`.
 
@@ -86,7 +87,7 @@ mkdir -p /tmp/$USER
 singularity shell --bind $PWD:/apps/input,/tmp/$USER:/apps/output h5py_latest.sif
 ```
 
-Once in the container shell, run the "write" `h5py` demo with a varying number of processes:
+Once in the container shell, run the writer `h5py` demo with a varying number of processes:
 ```
 cd /apps/output/
 for np in 4 8 16; do mpirun -np ${np} python /apps/input/h5py_write_demo.py; done
@@ -96,18 +97,18 @@ Edit the file `h5py_write_demo.py` and observe the following:
  - the HDF5 files is open using the `mpio` driver and the operation makes use of the default MPI communicator `MPI.COMM_WORLD`;
  - each process initialises only a part of the data that is written to file;
  - there is no _global_ (across-process) view of the data; the variable `dataset` is a handle for the data;
- - data initialisation is an "independent" `h5py` operation, while file open and close are "collective" (see the [h5py notes on this](https://docs.h5py.org/en/stable/mpi.html#collective-versus-independent-operations).
+ - data initialisation is an _independent_ `h5py` operation, while file open and close are _collective_ (see the [h5py notes on this](https://docs.h5py.org/en/stable/mpi.html#collective-versus-independent-operations).
 
-The data size is fixed, so increasing the number of processes means each process initialises less data.
+The data size is fixed, so increasing the number of processes means each process initialises and writes less data.
 
 ### Exercise 2
-Now, run the "reader" demo, which reads the data from the file written by the "writer" demo. Use the command
+Now, run the reader demo, which reads the data from the file written by the writer demo. Use the command
 
 ```
 for np in 4 8 16; do mpirun -np ${np} python /apps/input/h5py_read_demo.py; done
 ```
 
-Edit the file `h5py_read_demo.py` and observe the similarities with the "write" demo.
+Edit the file `h5py_read_demo.py` and observe the similarities with the writer demo.
 
 
 ### Exercise 3
@@ -115,14 +116,13 @@ In the read demo `h5py_read_demo.py`, print additional information on data read 
 ```
 print (" iproc = {}, shape = {}, data[0,0] = {}".format(iproc, dataproc.shape, dataproc[0,0]))
 ```
-Place this just after the last `MPI.Wtime` call. Rerun the demo with 4 processes and observe the output. Now replace the "process view" of the data `dataproc[0,0]` with the "global view" `dataset[0,0]` and rerun. What happens?
-```
+Place this just after the last `MPI.Wtime` call. Rerun the demo with 4 processes and understand the output. Now replace the "process view" of the data `dataproc[0,0]` with the "global view" `dataset[0,0]` and rerun. What happens?
 
 ### Exercise 4
 Now repeat the write and read runs above on `gpfs` rather than `etx4`. Use an interactive cluster session and an appropriate path (_e.g._ `/dls/p45`) that is mounted as `gpfs` on Hamilton nodes. How do write/read times compare with `ext4`?
 
 ### Exercise 5
-Repeat the same operations, on the same path but this time on your workstations, which mounts the path as `nfs` (check!). How do results change?
+Repeat the same operations, on the same path as the previous exercise but this time running the containe on a linux workstation, which mounts the path as `nfs` (check!). How do results change?
 
 ### Exercise 6
 Edit the file `h5py_serial_chunking_demo.py` and understand what it is programmed to do. The demo is serial and can be run outside the container, using the DLS python installation, _e.g._ using `module load python/3.9`.
