@@ -31,12 +31,14 @@ csize = ksize
 #
 # === write and read h5 file: NO chunks
 #
-with h5py.File ("h5py_test_contig.h5", "w") as h5file:
+filename = "h5py_test_contig.h5"
+
+with h5py.File (filename, "w") as h5file:
     dataset = h5file.create_dataset ("test", (nimgs, nrows, ncols), dtype=numpy.float64)
     numpy.random.seed(746574366)
     dataset[:,:,:] = numpy.random.uniform(size=(nimgs, nrows, ncols))
 
-with h5py.File ("h5py_test_contig.h5", "r") as h5file:
+with h5py.File (filename, "r") as h5file:
     dataset = h5file["test"]
     nimgs, nrows, ncols = dataset.shape
     t = time.time ()
@@ -46,7 +48,7 @@ with h5py.File ("h5py_test_contig.h5", "r") as h5file:
     print (" contiguous dataset read in {} secs".format(t))
 
 try:
-    os.remove ("h5py_test_contig.h5")
+    os.remove (filename)
 except OSError as e:
     print("Error: %s : %s" % (file_path, e.strerror))
 
@@ -54,12 +56,14 @@ except OSError as e:
 #
 # === write and read h5 file: WITH chunks
 #
-with h5py.File ("h5py_test_chunked.h5", "w") as h5file:
+filename = "h5py_test_chunked.h5"
+
+with h5py.File (filename, "w") as h5file:
     dataset = h5file.create_dataset("test", (nimgs, nrows, ncols), dtype=numpy.float64, chunks=(1,csize,csize))
     numpy.random.seed(746574366)
     dataset[:,:,:] = numpy.random.uniform(size=(nimgs, nrows, ncols))
 
-with h5py.File ("h5py_test_chunked.h5", "r") as h5file:
+with h5py.File (filename, "r") as h5file:
     dataset = h5file["test"]
     nimgs, nrows, ncols = dataset.shape
     t = time.time ()
@@ -69,7 +73,7 @@ with h5py.File ("h5py_test_chunked.h5", "r") as h5file:
     print (" chunked dataset ({}) read in {} secs".format(dataset.chunks, t))
 
 try:
-    os.remove ("h5py_test_contig.h5")
+    os.remove (filename)
 except OSError as e:
     print("Error: %s : %s" % (file_path, e.strerror))
 
@@ -77,12 +81,14 @@ except OSError as e:
 #
 # === write and read h5 file: WITH chunks AND compression
 #
-with h5py.File ("h5py_test_compress.h5", "w") as h5file:
+filename = "h5py_test_compress.h5"
+
+with h5py.File (filename, "w") as h5file:
     dataset = h5file.create_dataset("test", (nimgs, nrows, ncols), dtype=numpy.float64, chunks=(1,csize,csize), compression="gzip")
     numpy.random.seed(746574366)
     dataset[:,:,:] = numpy.random.uniform(size=(nimgs, nrows, ncols))
 
-with h5py.File ("h5py_test_chunked.h5", "r") as h5file:
+with h5py.File (filename, "r") as h5file:
     dataset = h5file["test"]
     nimgs, nrows, ncols = dataset.shape
     t = time.time ()
@@ -92,6 +98,6 @@ with h5py.File ("h5py_test_chunked.h5", "r") as h5file:
     print (" chunked and compressed dataset ({}) read in {} secs".format(dataset.chunks, t))
 
 try:
-    os.remove ("h5py_test_compress.h5")
+    os.remove (filename)
 except OSError as e:
     print("Error: %s : %s" % (file_path, e.strerror))
